@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Medical Symptom Checker</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; padding:30px 20px; }
+    .container { max-width:900px; margin:0 auto; }
+    .header { text-align:center; margin-bottom:30px; }
+    .header h1 { font-size:32px; color:white; font-weight:700; margin-bottom:8px; }
+    .header p { color:rgba(255,255,255,0.85); font-size:15px; }
+    .card { background:white; border-radius:16px; padding:28px; box-shadow:0 10px 40px rgba(0,0,0,0.15); margin-bottom:20px; }
+    .warning { background:#fff8e1; border-left:4px solid #ffc107; border-radius:8px; padding:12px 16px; margin-bottom:24px; font-size:13px; color:#7d5a00; display:flex; gap:10px; align-items:flex-start; }
+    .search-box { width:100%; padding:12px 16px; border:2px solid #e8e8e8; border-radius:10px; font-size:14px; margin-bottom:16px; transition:border-color 0.2s; outline:none; }
+    .search-box:focus { border-color:#667eea; }
+    .duration-row { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .duration-btn { padding:8px 16px; border:2px solid #e8e8e8; border-radius:20px; font-size:13px; cursor:pointer; background:white; transition:all 0.2s; color:#555; }
+    .duration-btn.active { background:#667eea; border-color:#667eea; color:white; }
+    .count-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .count-label { font-size:13px; font-weight:600; color:#667eea; }
+    .clear-btn { font-size:12px; color:#999; cursor:pointer; border:none; background:none; }
+    .clear-btn:hover { color:#e53e3e; }
+    .symptoms-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:6px; max-height:380px; overflow-y:auto; padding:4px 2px; margin-bottom:24px; }
+    .symptom-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; cursor:pointer; border:1.5px solid #eee; transition:all 0.15s; }
+    .symptom-item:hover { border-color:#667eea; background:#f5f3ff; }
+    .symptom-item.checked { border-color:#667eea; background:#f0edff; }
+    .symptom-item input { cursor:pointer; width:15px; height:15px; accent-color:#667eea; }
+    .symptom-item label { font-size:12.5px; color:#333; cursor:pointer; line-height:1.3; }
+    .submit-btn { width:100%; padding:16px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; transition:opacity 0.2s; letter-spacing:0.5px; }
+    .submit-btn:hover { opacity:0.9; }
+    .submit-btn:disabled { background:#ccc; cursor:not-allowed; }
+    input[type=hidden] { display:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🩺 AI Medical Symptom Checker</h1>
+      <p>Powered by Random Forest Machine Learning — 41 diseases, 133 symptoms</p>
+    </div>
+    <div class="card">
+      <div class="warning">
+        ⚠️ This tool is for educational purposes only and is not a substitute for professional medical advice. Always consult a qualified doctor.
+      </div>
+      <input class="search-box" type="text" id="search" placeholder="🔍 Search symptoms..." oninput="filterSymptoms()">
+      <div style="font-size:13px;color:#666;margin-bottom:8px;font-weight:500;">How long have you had these symptoms?</div>
+      <div class="duration-row" id="duration-row">
+        <button type="button" class="duration-btn" onclick="setDuration(this,'1-3 days')">1–3 days</button>
+        <button type="button" class="duration-btn" onclick="setDuration(this,'4-7 days')">4–7 days</button>
+        <button type="button" class="duration-btn" onclick="setDuration(this,'1-2 weeks')">1–2 weeks</button>
+        <button type="button" class="duration-btn" onclick="setDuration(this,'More than 2 weeks')">More than 2 weeks</button>
+      </div>
+      <form action="/predict" method="POST" id="symptom-form">
+        <input type="hidden" name="duration" id="duration-val" value="Not specified">
+        <div class="count-row">
+          <span class="count-label" id="count">0 symptoms selected</span>
+          <button type="button" class="clear-btn" onclick="clearAll()">Clear all</button>
+        </div>
+        <div class="symptoms-grid" id="symptom-grid">
+          {% for symptom in symptoms %}
+          <div class="symptom-item" id="item-{{ loop.index }}">
+            <input type="checkbox" name="symptoms" value="{{ symptom }}" id="{{ symptom }}" onchange="updateCount(this)">
+            <label for="{{ symptom }}">{{ symptom.replace('_',' ') }}</label>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="submit" class="submit-btn" id="submit-btn" disabled>Predict Disease →</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    var selectedDuration = 'Not specified';
+    function setDuration(btn, val) {
+      document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('duration-val').value = val;
+    }
+    function updateCount(cb) {
+      cb.closest('.symptom-item').classList.toggle('checked', cb.checked);
+      var n = document.querySelectorAll('input[name="symptoms"]:checked').length;
+      document.getElementById('count').textContent = n + ' symptom' + (n !== 1 ? 's' : '') + ' selected';
+      document.getElementById('submit-btn').disabled = n === 0;
+    }
+    function clearAll() {
+      document.querySelectorAll('input[name="symptoms"]').forEach(cb => { cb.checked = false; cb.closest('.symptom-item').classList.remove('checked'); });
+      document.getElementById('count').textContent = '0 symptoms selected';
+      document.getElementById('submit-btn').disabled = true;
+    }
+    function filterSymptoms() {
+      var q = document.getElementById('search').value.toLowerCase();
+      document.querySelectorAll('.symptom-item').forEach(item => {
+        item.style.display = item.querySelector('label').textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

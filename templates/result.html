@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results - AI Symptom Checker</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; padding:30px 20px; }
+    .container { max-width:800px; margin:0 auto; }
+    .header { text-align:center; margin-bottom:24px; }
+    .header h1 { font-size:26px; color:white; font-weight:700; }
+    .header p { color:rgba(255,255,255,0.8); font-size:14px; margin-top:6px; }
+    .card { background:white; border-radius:16px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.15); margin-bottom:16px; }
+    .rank-1 { border-top:4px solid #667eea; }
+    .rank-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; margin-bottom:12px; background:#667eea; color:white; }
+    .rank-other { background:#e2e8f0; color:#555; }
+    .disease-row { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+    .disease-name { font-size:26px; font-weight:700; color:#2d3748; }
+    .badges { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .confidence-badge { padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600; background:#f0edff; color:#667eea; }
+    .severity-badge { padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600; }
+    .Mild { background:#f0fff4; color:#276749; }
+    .Moderate { background:#fffbeb; color:#975a16; }
+    .Serious { background:#fff5f5; color:#c53030; }
+    .confidence-bar { height:8px; background:#eee; border-radius:4px; margin-bottom:20px; overflow:hidden; }
+    .confidence-fill { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:4px; }
+    .section { margin-bottom:16px; }
+    .section-title { font-size:12px; color:#999; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-weight:600; }
+    .description { font-size:14px; color:#555; line-height:1.7; background:#f8fafc; padding:12px 16px; border-radius:8px; }
+    .prec-list { list-style:none; }
+    .prec-list li { display:flex; gap:10px; padding:8px 12px; background:#f0fff4; border-radius:8px; margin-bottom:6px; font-size:13px; color:#333; }
+    .prec-list li::before { content:"✓"; color:#38a169; font-weight:bold; flex-shrink:0; }
+    .symptom-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .tag { background:#f0edff; color:#667eea; padding:4px 12px; border-radius:20px; font-size:12px; }
+    .duration-tag { background:#e6fffa; color:#2c7a7b; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:500; }
+    .warning { background:#fff8e1; border-left:4px solid #ffc107; border-radius:8px; padding:12px 16px; font-size:13px; color:#7d5a00; margin-bottom:16px; }
+    .back-btn { display:block; width:100%; padding:14px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; text-align:center; text-decoration:none; }
+    .back-btn:hover { opacity:0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Prediction Results</h1>
+      <p>Based on {{ symptoms_selected|length }} symptom(s) &mdash; Duration: {{ duration }}</p>
+    </div>
+
+    {% for p in predictions %}
+    <div class="card {% if p.rank == 1 %}rank-1{% endif %}">
+      <span class="rank-badge {% if p.rank != 1 %}rank-other{% endif %}">
+        {% if p.rank == 1 %}Most Likely{% elif p.rank == 2 %}2nd Possibility{% else %}3rd Possibility{% endif %}
+      </span>
+      <div class="disease-row">
+        <div class="disease-name">{{ p.disease }}</div>
+        <div class="badges">
+          <span class="confidence-badge">{{ p.confidence }}% match</span>
+          <span class="severity-badge {{ p.severity }}">{{ p.severity }}</span>
+        </div>
+      </div>
+      <div class="confidence-bar">
+        <div class="confidence-fill" style="width:{{ p.confidence }}%"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Description</div>
+        <div class="description">{{ p.description }}</div>
+      </div>
+      {% if p.precautions %}
+      <div class="section">
+        <div class="section-title">Precautions</div>
+        <ul class="prec-list">
+          {% for prec in p.precautions %}
+          <li>{{ prec }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="card">
+      <div class="section-title" style="margin-bottom:10px;">Symptoms you selected</div>
+      <div class="symptom-tags" style="margin-bottom:12px;">
+        {% for s in symptoms_selected %}
+        <span class="tag">{{ s.replace('_',' ') }}</span>
+        {% endfor %}
+      </div>
+      <div style="font-size:13px;color:#999;margin-top:8px;">Duration: <span class="duration-tag">{{ duration }}</span></div>
+    </div>
+
+    <div class="warning">This is not a medical diagnosis. Please consult a qualified doctor for proper evaluation and treatment.</div>
+
+    <a href="/" class="back-btn">Check Again</a>
+  </div>
+</body>
+</html>
